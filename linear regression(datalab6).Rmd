@@ -1,0 +1,172 @@
+---
+title: "Untitled"
+author: "Nirmala Dhakal"
+date: "10/12/2021"
+output: html_document
+---
+
+#linear Regression:
+
+##correaltion in r 
+
+```{r}
+library(palmerpenguins)
+cor(penguins$bill_length_mm,
+    penguins$body_mass_g, 
+    use = "pairwise.complete")  #[1] 0.5951098 
+##this is correlation between bill length and body mass.
+
+```
+
+
+#find the Pearson correlation bill length and bill depth for Gentoo penguins.
+
+```{r}
+library(palmerpenguins)
+gentoo <- penguins |> filter(species == "Gentoo")
+cor.test(penguins$bill_length_mm,
+    penguins$body_mass_g, 
+    use = "pairwise.complete") #pearson's product mooment correlation
+```
+
+#OR we can use this chunk
+
+```{r}
+penguins |> 
+  filter(species == "Gentoo") |> 
+  drop_na(bill_length_mm, bill_depth_mm) |> 
+  summarise(corr = cor(bill_length_mm, bill_depth_mm))
+```
+
+#Find the confidence intervals of this correlation. Is it significant?
+
+
+```{r}
+ct <- cor.test(gentoo$bill_length_mm, gentoo$bill_depth_mm, use = "complete.obs")
+ct 
+#95% confidence interval.it is significant.there is a 95% chance that the confidence interval of [0.5262952 0.7365271] contains the true population correlation coefficient between bill length and bill depth in gentoo penguins.
+
+#95 percent confidence interval does not include 0, means it is significant,further away from zero either negatively or positively,it is more significant.
+```
+
+#calculate r^2 and how much variation in data is explained by correlation.
+
+```{r}
+(0.6433839)^2 =0.413 #41% variance is explained in data. R^2 always increase with more no. of predictor.
+```
+
+
+#Fitting a least-squares model in R
+
+```{r}
+library(palmerpenguins)
+gentoo <- penguins |> filter(species == "Gentoo")
+mod <- lm(bill_length_mm ~ body_mass_g, data = gentoo)
+mod
+```
+
+
+#We want to test how bill length varies with body mass in Chinstrap penguins
+
+#make plot to show data
+
+```{r}
+chinstrap <- penguins |> 
+  filter(species == "Chinstrap")
+ggplot(chinstrap, aes(x = body_mass_g, y = bill_length_mm)) +
+  geom_point() +
+  labs(x = "Body mass g", y = "Bill length mm")
+
+```
+
+#fit a suitable model to the data
+
+```{r}
+mod <- lm(bill_length_mm ~ body_mass_g, data = chinstrap)
+mod
+summary(mod)#Coefficients:
+             #Estimate Std. Error t value Pr(>|t|)    
+             #(Intercept) 3.217e+01  3.443e+00   9.344 1.07e-13 ***
+              #body_mass_g 4.463e-03  9.176e-04   4.863 7.48e-06 ***
+#std error is uncertainty in data.
+#t avlue and p value very far from 0, so result is significant.
+```
+
+```{r}
+av <- car::Anova(mod)#anova can be used to calculate F statistics. if F value large means large no. of DF.#Large f value also shows significance.
+av
+
+```
+
+
+#Examine the diagnostic plots. Is everything OK?
+
+```{r diagnostics, fig.height = 8}
+library(ggfortify)
+autoplot(mod, which = 1:6)
+```
+
+
+
+## Categorical predictors
+
+#We want to test whether Adelie penguins differ in body mass between islands.
+
+# Make a suitable plot to show the raw data
+
+```{r}
+library(ggbeeswarm)
+adelie <- penguins |> filter(species == "Adelie")
+
+island_mass_plot <- ggplot(adelie, aes(x = island, y = body_mass_g)) +
+  geom_violin() +
+  geom_quasirandom() + # like geom_sina but more evenly spaced
+  labs(x = "Island", y = "Body mass g")
+island_mass_plot
+
+```
+
+- Fit a suitable model to the data
+
+```{r}
+mod2 <- lm(body_mass_g ~ island, data = adelie)
+coef(mod2) #(Intercept)     islandDream islandTorgersen 
+           3709.659091      -21.266234       -3.286542 
+
+           #(mean mass in bisco)(diff in mass betw bisco and dream)(diff in mass beween bisco and torgersen)
+           
+           
+```
+
+
+
+- Interpret the model coefficients
+
+```{r}
+coef(mod2) 
+```
+
+- Is the model statistically significant?
+
+```{r}
+av2 <- car::Anova(mod2)
+av2 #P VALUE greater than 0.05, not significant
+
+```
+
+- Include the predicted mass with confidence interval on the plot
+
+```{r}
+
+nd <- distinct(adelie, island)
+pred_mass <- augment(mod2, newdata = nd, interval = "confidence")
+island_mass_plot +
+  geom_pointrange(aes(y = .fitted, ymin = .lower, ymax = .upper), data = pred_mass, colour = "red", size = 1.5)
+  
+
+```
+
+- Do a post-hoc test to test for differences between pairs of islands (in real analysis only do this if overall model is significant) (Hint - use `multcomp` package but DO NOT use `library(multcomp)` - it also loads `plyr` and causes conflicts)
+- plot the result of the post-hoc test and interpret the results
+
+
