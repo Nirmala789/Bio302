@@ -1,0 +1,52 @@
+---
+title: "GLM"
+author: "Nirmala Dhakal"
+date: "10/26/2021"
+output: html_document
+---
+
+
+
+#using maximum likelihood in R
+
+```{r}
+library(tidyverse)
+library(palmerpenguins)
+gentoo <- penguins |> filter(species == "Adelie") |> drop_na(bill_length_mm)
+mod_ls <- lm(bill_length_mm ~ island, data = gentoo)
+mod_ml <- glm(bill_length_mm ~ island, data = gentoo)
+mod_ls |> broom::tidy()
+```
+
+#diff between these two?? gives similar results
+
+```{r}
+mod_ml |> broom::tidy()
+```
+
+#why we use this? (for analysis of variance table )
+
+```{r}
+anova(mod_ls)
+```
+
+#why use this? (analysis of deviance table)
+
+```{r}
+anova(mod_ml, test = "F")
+```
+
+#poisson example
+
+```{r}
+library(tidyverse)
+ gonga_rich <- biomass2015_H 
+mod_g <- glm(richness ~ elevation, family = poisson, data = gonga_rich)
+summary(mod_g)
+```
+
+
+```{r}
+anova(mod_g, test = "Chi")
+```
+
